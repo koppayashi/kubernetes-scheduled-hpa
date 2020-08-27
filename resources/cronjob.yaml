@@ -1,0 +1,54 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: scale-out
+  labels:
+    app.kubernetes.io/name: scale-out
+spec:
+  concurrencyPolicy: Replace
+  schedule: "0 11 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: scale-out
+        spec:
+          serviceAccountName: scheduled-hpa
+          containers:
+            - name: scheduled-hpa
+              image: bitnami/kubectl:latest
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  kubectl -n default patch hpa/test-hpa -p '{"spec": {"minReplicas": 30}}'
+          restartPolicy: Never
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: scale-in
+  labels:
+    app.kubernetes.io/name: scale-in
+spec:
+  concurrencyPolicy: Replace
+  schedule: "0 12 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: scale-in
+        spec:
+          serviceAccountName: scheduled-hpa
+          containers:
+            - name: scheduled-hpa
+              image: bitnami/kubectl:latest
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  kubectl -n default patch hpa/test-hpa -p '{"spec": {"minReplicas": 3}}'
+          restartPolicy: Never
+
